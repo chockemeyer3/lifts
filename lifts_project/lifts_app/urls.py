@@ -7,5 +7,5 @@ router = DefaultRouter()
 router.register(r'lifts', LiftEntryViewSet, basename='lifts')
 
 urlpatterns = [
-    path('api/', include(router.urls)),
+    path('', include(router.urls)),
 ]
