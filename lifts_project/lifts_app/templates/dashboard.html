@@ -1,0 +1,43 @@
+<form
+  hx-post="{% url 'lifts-list' %}"           {# points to POST /api/lifts/ #}
+  hx-trigger="submit"
+  hx-swap="none"                             {# we will handle the response via JS/Alpine #}
+  x-data="{ lift: 'squat', date: '', weight: '', reps: '', rpe: '' }"
+  @htmx:afterRequest=" // once the POST succeeds, dispatch a 'entry-added' event
+    $dispatch('entry-added', { lift: lift }) 
+  "
+>
+  <label>
+    Lift:
+    <select name="lift_type" x-model="lift">
+      <option value="squat">Squat</option>
+      <option value="bench">Bench Press</option>
+      <option value="deadlift">Deadlift</option>
+      <option value="ohp">Overhead Press</option>
+    </select>
+  </label>
+
+  <label>
+    Date:
+    <input type="date" name="date" x-model="date" required>
+  </label>
+
+  <label>
+    Weight:
+    <input type="number" name="weight" x-model="weight" step="0.1" min="0" required>
+  </label>
+
+  <label>
+    Reps:
+    <input type="number" name="reps" x-model="reps" min="1" required>
+  </label>
+
+  <label>
+    RPE:
+    <input type="number" name="rpe" x-model="rpe" step="0.5" min="1" max="10" required>
+  </label>
+
+  <button type="submit" :disabled="!lift || !date || !weight || !reps || !rpe">
+    Log Lift
+  </button>
+</form>
