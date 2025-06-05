@@ -1,0 +1,50 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django stuff:
+*.log
+*.pot
+*.pyc
+*.pyo
+*.sqlite3
+db.sqlite3
+
+# Environment variables:
+.env
+
+# Virtual environment:
+venv/
+env/
+*.virtualenv
+
+# IDE files:
+.vscode/
+.idea/
+
+# Static and media files:
+staticfiles/
+media/
+
+# Coverage reports:
+.coverage
+*.cover
+coverage.xml
+htmlcov/
+
+# Testing:
+.tox/
+.nox/
+pytest_cache/
+nosetests.xml
+test-results.xml
+
+# Node.js dependencies:
+node_modules/
+
+# Build files:
+build/
+dist/
+*.egg-info/
+*.egg
