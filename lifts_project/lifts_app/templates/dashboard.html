@@ -1,43 +1,123 @@
-<form
-  hx-post="{% url 'lifts-list' %}"           {# points to POST /api/lifts/ #}
-  hx-trigger="submit"
-  hx-swap="none"                             {# we will handle the response via JS/Alpine #}
-  x-data="{ lift: 'squat', date: '', weight: '', reps: '', rpe: '' }"
-  @htmx:afterRequest=" // once the POST succeeds, dispatch a 'entry-added' event
-    $dispatch('entry-added', { lift: lift }) 
-  "
->
-  <label>
-    Lift:
-    <select name="lift_type" x-model="lift">
-      <option value="squat">Squat</option>
-      <option value="bench">Bench Press</option>
-      <option value="deadlift">Deadlift</option>
-      <option value="ohp">Overhead Press</option>
-    </select>
-  </label>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.8.4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <title>Workout Dashboard</title>
+</head>
+<body>
 
-  <label>
-    Date:
-    <input type="date" name="date" x-model="date" required>
-  </label>
+  <h1>My Workout Dashboard</h1>
 
-  <label>
-    Weight:
-    <input type="number" name="weight" x-model="weight" step="0.1" min="0" required>
-  </label>
+  {# Insert the htmx form somewhere at the top or side #}
+  <div>
+    {% include "partials/lift_form.html" %}
+  </div>
 
-  <label>
-    Reps:
-    <input type="number" name="reps" x-model="reps" min="1" required>
-  </label>
+  <div 
+    x-data="workoutCharts()" 
+    x-init="initAll()"
+    @entry-added.window="onEntryAdded($event.detail.lift)"
+  >
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem;">
+      <!-- Each “chart tile” is an Alpine subcomponent that fetches & draws -->
+      <div>
+        <h3>Squat 1RM Over Time</h3>
+        <canvas id="squatChart"></canvas>
+      </div>
+      <div>
+        <h3>Bench Press 1RM Over Time</h3>
+        <canvas id="benchChart"></canvas>
+      </div>
+      <div>
+        <h3>Deadlift 1RM Over Time</h3>
+        <canvas id="deadliftChart"></canvas>
+      </div>
+      <div>
+        <h3>Overhead Press 1RM Over Time</h3>
+        <canvas id="ohpChart"></canvas>
+      </div>
+    </div>
+  </div>
 
-  <label>
-    RPE:
-    <input type="number" name="rpe" x-model="rpe" step="0.5" min="1" max="10" required>
-  </label>
+  <script>
+    function workoutCharts() {
+      return {
+        // keep a reference to each Chart.js instance
+        charts: {
+          squat: null,
+          bench: null,
+          deadlift: null,
+          ohp: null
+        },
 
-  <button type="submit" :disabled="!lift || !date || !weight || !reps || !rpe">
-    Log Lift
-  </button>
-</form>
+        // call this on page load to fetch all four sets of data
+        initAll() {
+          ['squat','bench','deadlift','ohp'].forEach(lift => {
+            this.fetchAndDraw(lift);
+          });
+        },
+
+        // whenever a new entry is added for, say, "squat", re-fetch just that lift
+        onEntryAdded(liftName) {
+          this.fetchAndDraw(liftName);
+        },
+
+        // Core: fetch JSON via htmx, then draw/update the corresponding chart
+        fetchAndDraw(liftName) {
+          // issue a GET to /api/lifts/latest/?lift=<liftName>
+          fetch(`/api/lifts/latest/?lift=${liftName}&limit=20`)
+            .then(res => res.json())
+            .then(data => {
+              // data is an array of { date: "YYYY-MM-DD", estimated_1rm: 315.0 }
+              const labels = data.map(item => item.date);
+              const values = data.map(item => item.estimated_1rm);
+
+              const ctx = document.getElementById(`${liftName}Chart`).getContext('2d');
+
+              // If a chart already exists, destroy it before redrawing
+              if (this.charts[liftName]) {
+                this.charts[liftName].destroy();
+              }
+
+              this.charts[liftName] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                  labels: labels,
+                  datasets: [{
+                    label: `${liftName.charAt(0).toUpperCase() + liftName.slice(1)} 1RM`,
+                    data: values,
+                    fill: false,
+                    tension: 0.1
+                    // (Chart.js will pick a default color if you don’t specify)
+                  }]
+                },
+                options: {
+                  scales: {
+                    x: {
+                      type: 'time',
+                      time: {
+                        parser: 'yyyy-MM-dd',
+                        unit: 'day',
+                        displayFormats: {
+                          day: 'MMM d'
+                        }
+                      }
+                    },
+                    y: {
+                      beginAtZero: true,
+                      title: { display: true, text: 'Estimated 1RM' }
+                    }
+                  }
+                }
+              });
+            })
+            .catch(err => console.error(`Error fetching ${liftName} data:`, err));
+        }
+      }
+    }
+  </script>
+</body>
+</html>
